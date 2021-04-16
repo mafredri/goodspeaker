@@ -14,11 +14,8 @@ import (
 	"context"
 	"crypto/aes"
 	"crypto/cipher"
-	"fmt"
-	"io"
-	"net"
 
-	errors "golang.org/x/xerrors"
+	"github.com/mafredri/goodspeaker/js/net"
 )
 
 // Header types.
@@ -72,28 +69,16 @@ func WithAES(key, iv []byte) (Option, error) {
 	}, nil
 }
 
-type conn struct {
-	*Reader
-	*Writer
-	io.Closer
-}
-
-// Dial connects to a LG speaker over TCP and returns a connection with the
-// Reader, Writer and Closer set.
-func Dial(ctx context.Context, addr string, opts ...Option) (io.ReadWriteCloser, error) {
+// Dial connects to the speaker at the provided address.
+//
+// Building for js is supported.
+func Dial(ctx context.Context, addr string) (net.Conn, error) {
 	d := net.Dialer{}
-
-	netConn, err := d.DialContext(ctx, "tcp", addr)
+	conn, err := d.DialContext(ctx, "tcp", addr)
 	if err != nil {
 		return nil, err
 	}
-
-	c := &conn{
-		Reader: NewReader(netConn, opts...),
-		Writer: NewWriter(netConn, opts...),
-		Closer: netConn,
-	}
-	return c, nil
+	return conn, nil
 }
 
 func min(x, y int) int {
