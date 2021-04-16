@@ -12,6 +12,11 @@ import (
 	"time"
 )
 
+var uint8Array = js.Global().Get("Uint8Array")
+
+// socket wraps Socket into a net.Conn.
+//
+// https://nodejs.org/api/net.html#net_class_net_socket
 type socket struct {
 	s    js.Value
 	fns  []js.Func
@@ -34,6 +39,7 @@ func newSocket(addr string) *socket {
 	}
 
 	s.on("data", s.recv)
+	s.on("timeout", s.timeout)
 
 	// As we don't support half-open sockets, so no need to handle "end".
 	s.on("error", s.setCloseError)
@@ -42,26 +48,11 @@ func newSocket(addr string) *socket {
 	return s
 }
 
-// Dial creates a new net.Socket and connects to the remote.
-func Dial(network string, addr string) (net.Conn, error) {
-	if network != "tcp" {
-		panic("unsupported network type")
-	}
-
-	s := newSocket(addr)
-
-	// Establish connection.
-	err := s.connect(addr)
-	if err != nil {
-		return nil, err
-	}
-
-	return s, nil
-}
-
 // recv socket messages and store them in the buffer.
 func (s *socket) recv(this js.Value, args []js.Value) interface{} {
-	b := typedArrayToByte(args[0])
+	v := args[0]
+	b := make([]byte, v.Length())
+	js.CopyBytesToGo(b, v)
 
 	select {
 	case <-s.done:
@@ -70,6 +61,14 @@ func (s *socket) recv(this js.Value, args []js.Value) interface{} {
 	}
 
 	s.rbuf.store(b)
+	return nil
+}
+
+func (s *socket) timeout(js.Value, []js.Value) interface{} {
+	go func() {
+		log.Println("js/net: Socket timeout")
+		s.Close()
+	}()
 	return nil
 }
 
@@ -102,7 +101,7 @@ func (s *socket) connect(addr string) error {
 	ready := make(chan struct{})
 	cb = js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		go func() {
-			log.Printf("Connected to %s!", addr)
+			log.Printf("js/net: Connected to %s!", addr)
 		}()
 		close(ready)
 		cb.Release() // Release the function.
@@ -146,8 +145,9 @@ func (s *socket) Read(b []byte) (n int, err error) {
 
 // Write implements io.Writer.
 func (s *socket) Write(p []byte) (n int, err error) {
-	b := js.TypedArrayOf(p)
-	ret := s.s.Call("write", b)
+	buf := uint8Array.New(len(p))
+	js.CopyBytesToJS(buf, p)
+	ret := s.s.Call("write", buf)
 
 	var ok bool
 	switch ret.Type() {
@@ -194,13 +194,18 @@ func (s *socket) RemoteAddr() net.Addr {
 }
 
 func (s *socket) SetDeadline(t time.Time) error {
-	panic("not implemented")
+	d := 0
+	if !t.IsZero() {
+		d = int(t.Sub(time.Now()).Milliseconds())
+	}
+	s.s.Call("setTimeout", d)
+	return nil
 }
 
 func (s *socket) SetReadDeadline(t time.Time) error {
-	panic("not implemented")
+	return s.SetDeadline(t)
 }
 
 func (s *socket) SetWriteDeadline(t time.Time) error {
-	panic("not implemented")
+	return s.SetDeadline(t)
 }
