@@ -2,8 +2,9 @@ package goodspeaker
 
 import (
 	"encoding/binary"
-	"errors"
 	"io"
+
+	errors "golang.org/x/xerrors"
 )
 
 // Writer writes LG speaker messages.
@@ -47,7 +48,7 @@ func (w *Writer) writeHeader(format byte, size int) (n int, err error) {
 	binary.BigEndian.PutUint32(header[1:5], uint32(size))
 
 	if n, err = w.w.Write(header[:]); err != nil {
-		return n, errWrap(err, "error writing header")
+		return n, errors.Errorf("write header failed: %w", err)
 	}
 	if n != 5 {
 		return n, errors.New("wrote incomplete header")
@@ -63,7 +64,7 @@ func (w *Writer) writePlain(p []byte) (n int, err error) {
 		return 0, err
 	}
 	if n, err = w.w.Write(p); err != nil {
-		return n, errWrap(err, "error writing message")
+		return n, errors.Errorf("write message failed: %w", err)
 	}
 	if n != len(p) {
 		return n, errors.New("wrote incomplete message")
@@ -94,13 +95,13 @@ func (w *Writer) writeEncrypted(p []byte) (n int, err error) {
 
 		err := pad(src, nn) // Apply PKCS7 padding, if needed.
 		if err != nil {
-			return n, errWrap(err, "could not apply pkcs7 padding")
+			return n, errors.Errorf("could not apply pkcs7 padding: %w", err)
 		}
 
 		cbm.CryptBlocks(dst, src)
 		_, err = w.w.Write(dst)
 		if err != nil {
-			return n, errWrap(err, "could not write encrypted block")
+			return n, errors.Errorf("could not write encrypted block: %w", err)
 		}
 
 		n += nn // Increment n with the length of plain text processed.

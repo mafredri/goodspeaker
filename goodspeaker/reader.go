@@ -62,7 +62,7 @@ func (r *Reader) parseHeader() error {
 	var header [5]byte
 	n, err := r.r.Read(header[:])
 	if err != nil {
-		return errWrap(err, "error reading header")
+		return errors.Errorf("error reading header: %w", err)
 	}
 	if n != 5 {
 		return errors.Errorf("invalid header length %d/5", n)
@@ -82,7 +82,7 @@ func (r *Reader) readPlain(p []byte) (n int, err error) {
 	limit := min(len(p), r.left)
 	n, err = r.r.Read(p[:limit])
 	if err != nil {
-		return n, err
+		return n, errors.Errorf("read message failed: %w", err)
 	}
 	r.left -= n
 	return n, nil
@@ -108,7 +108,7 @@ func (r *Reader) readEncrypted(p []byte) (n int, err error) {
 		// Read the next block.
 		rn, err := r.r.Read(buf)
 		if err != nil {
-			return 0, err
+			return 0, errors.Errorf("read message failed: %w", err)
 		}
 		if rn != len(buf) {
 			return 0, errors.New("decryption failed, incomplete read")

@@ -87,13 +87,3 @@ func min(x, y int) int {
 	}
 	return y
 }
-
-func errWrap(err error, format string, v ...interface{}) error {
-	if err == nil {
-		return nil
-	}
-	if err == io.EOF { // Avoid wrapping sentinel io.EOF.
-		return err
-	}
-	return errors.Errorf("%s: %w", fmt.Sprintf(format, v...), err)
-}
