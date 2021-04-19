@@ -4,7 +4,7 @@ This library speaks the LG speaker protocol which is used by both LG Music Flow 
 
 Both encrypted and unencrypted communication are supported, but encryption IV and key may need to be adjusted depending on what type of speaker we're communicating with.
 
-See [github.com/mafredri/musicflow](github.com/mafredri/musicflow) for an actual implementation using this protocol.
+See [github.com/mafredri/musicflow](https://github.com/mafredri/musicflow) for an actual implementation using this protocol.
 
 ## Usage
 
