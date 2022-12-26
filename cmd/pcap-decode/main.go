@@ -3,21 +3,26 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
 
-	"github.com/mafredri/goodspeaker/goodspeaker"
+	"github.com/mafredri/goodspeaker"
 
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/pcap"
 )
 
 var (
-	key = "4efgvbn m546Uy7kolKrftgbn =-0u&~"
-	iv  = "54eRty@hkL,;/y9U"
+	// Music Flow
+	// key = "4efgvbn m546Uy7kolKrftgbn =-0u&~"
+	// iv  = "54eRty@hkL,;/y9U"
+	// LG Sound Bar
+	key = "T^&*J%^7tr~4^%^&I(o%^!jIJ__+a0 k"
+	iv  = "'%^Ur7gy$~t+f)%@"
 )
 
 func main() {
@@ -52,7 +57,7 @@ func main() {
 			r := goodspeaker.NewReader(payload, withAES)
 
 			b, err := ioutil.ReadAll(r)
-			if err != nil && err != io.EOF {
+			if err != nil && !errors.Is(err, io.EOF) {
 				continue
 			}
 
